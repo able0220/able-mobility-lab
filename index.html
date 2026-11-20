@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>에이블 모빌리티 주행실습실 최종본</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f5f0;color:#1e302a;font:16px/1.5 "Malgun Gothic",sans-serif}header,main{max-width:1400px;margin:auto;padding:20px 4vw}header{display:flex;align-items:center;gap:14px;border-bottom:1px solid #ccd4c9}header b{background:#214937;color:#c6f891;padding:5px 12px;border-radius:5px;letter-spacing:2px}h1{font-size:22px;margin:0}main{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(310px,1fr);gap:20px;align-items:start}section{background:#fff;border:1px solid #cdd5cb;border-radius:15px;overflow:hidden}h2{font-size:20px;margin:0}.bar,.foot,.controls,details{padding:16px 20px}.bar,.foot,.controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.bar{justify-content:space-between}.tag{background:#e8f3dc;color:#36582a;padding:4px 10px;border-radius:20px;font-size:13px}canvas{width:100%;height:auto;display:block;background:#f4f7ee}button{font:inherit;font-weight:bold;cursor:pointer;border-radius:8px;background:white;border:1px solid #c8d1c6;padding:8px 13px;color:inherit}button:first-child{background:#27533f;color:white}button:disabled{opacity:.5;cursor:default}textarea{display:block;width:100%;height:245px;resize:vertical;border:0;background:#192f28;color:#dbf7c7;padding:16px 22px;font:19px/1.55 Consolas,monospace;tab-size:2}textarea::selection{background:#53724b;color:white}summary{cursor:pointer;font-weight:bold}details{border-top:1px solid #dae0d7;font-size:14px}details p{margin:8px 0}code{font-family:Consolas,monospace}.foot{align-items:flex-start;flex-direction:column}.state{font-size:14px;color:#52635b}.sensors{display:flex;gap:6px}.sensors span{font:12px Consolas,monospace;background:#eef1eb;border:1px solid #ced8c8;padding:5px;border-radius:4px}.sensors .on{background:#315c43;color:#e5ffcb}.status{margin:0 20px 16px;padding:10px 12px;background:#f2f5ee;border-radius:6px;min-height:44px;font-size:14px}.error{color:#9e321c}.note{font-size:13px;color:#536158;margin:0 20px 16px}@media(max-width:780px){main{grid-template-columns:1fr}textarea{height:160px}}
+.task{padding:8px 20px 12px;color:#32583f}.task button,select{font:inherit;border:1px solid #b8c7b9;border-radius:6px;padding:4px 8px}pre{font:15px/1.5 Consolas,monospace}select{max-width:100%}.race{padding:10px 20px}.race input{max-width:110px;padding:5px}.race strong{font: bold 20px Consolas,monospace}.race button{font-size:14px}.race ol{margin:6px 0}#worksheet{display:none}@page{size:A4;margin:12mm}@media print{body{background:white;font-size:11pt}header{padding:0 0 6px}main{display:block;padding:0}main section{border:0}main section:nth-child(2),.foot,.task,.bar,.race{display:none}canvas{width:145mm;margin:auto}#worksheet{display:block}#worksheet h3{margin:10px 0 2px}#worksheet p{margin:5px 0}table{border-collapse:collapse;width:100%}td,th{border:1px solid #888;padding:5px}td{height:8mm}}.cargo{display:flex;flex-wrap:wrap;align-items:center;gap:22px;padding:12px 20px;background:#f6f4eb}.cargo[hidden]{display:none}.cargo p{margin:4px 0;font-size:14px}#deck{display:grid;grid-template-columns:repeat(5,32px);gap:2px}#deck button{padding:0;height:29px;color:#164132;background:#fff;font-size:17px}@media print{.cargo{display:none}}#deck{display:block;width:min(364px,78vw);height:auto;touch-action:none;cursor:crosshair}#placeHint{display:block}#gripPanel{padding:8px 20px;background:#edf4ec}#gripZoom{width:200px;display:inline-block;vertical-align:middle}#gripState{font-size:14px}@media print{#gripPanel{display:none}}.mode{margin-left:auto}.submission,#judging{padding:12px 20px}.submission input{width:9em;padding:6px}#judging{max-width:1280px;margin:auto;background:#e6eedf}#judging p{margin:5px 0;font-size:14px}@media print{.mode,#judging{display:none}}
+body.tournament main{display:none}#judging{max-width:1400px;margin:auto;padding:18px 4vw}
+.meetTools{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+#lanes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr));gap:14px}
+.lane{min-width:0;background:white;border:1px solid #becdbf;border-radius:12px;overflow:hidden}.lane h3,.lane p{margin:8px 14px;overflow-wrap:anywhere}.lane canvas{display:block;width:100%;max-width:none;height:auto;background:#f5f7ee}
+#standings{padding-left:32px}#standings li{margin:.25em 0;overflow-wrap:anywhere}#loadErrors{white-space:pre-line;color:#934022}
+</style>
+<header><b>Able</b><h1>에이블 모빌리티 주행실습실 최종본</h1><label class="mode">화면 <select id="mode"><option value="student">학생 실습</option><option value="teacher">교사용 대회</option></select></label></header>
+<div id="judging" hidden><h2>교사용 대회</h2><div class="meetTools">
+<label>학생 제출 파일 <input id="submissions" type="file" accept=".json,application/json" multiple></label>
+<label>경기 미션 <select id="entries" disabled></select></label><button id="compete" disabled>동시 출발</button><button id="endHeat" disabled>경기 종료</button></div>
+<p id="queueInfo" role="status">함께 출전할 JSON 파일을 한 번에 선택하세요.</p><p id="loadErrors"></p>
+<div id="lanes"></div><h3>경기 순위</h3><ol id="standings"></ol></div>
+<main><section><div class="bar"><h2>주행 맵</h2><label>미션 <select id="mission"><option>기초 · 왼쪽 회전</option><option>응용 · 중앙 빈 구역</option><option>도전 · 오른쪽 위 종점</option><option>새 문제 · 임의 목적지</option><option selected>경기 1 · 기본 코스</option><option>경기 2 · 오른쪽 격자</option><option>경기 3 · 양쪽 날개</option><option>경기 4 · 중앙 우회</option><option>물리 미션 · 화물 운반</option><option>집게 1 · 계단 우회 + 중앙 사각 루프</option><option>집게 2 · 중앙 사각 루프 + 안팎 순환</option><option>집게 3 · 안팎 순환 + 계단 우회</option><option>집게 4 · 분류 배송</option></select></label></div>
+<div class="task"><b id="objective"></b> <button id="new" hidden>새 문제</button></div><div id="racepanel" class="race"> <span id="reference"></span> · <strong id="clock">0.000초</strong> <span id="visited"></span> <button id="printSheet">문제지 인쇄</button></div><div id="cargoPanel" class="cargo" hidden><div><b>화물 배치 · 5×5</b><p><label>화물 선택 <select id="piece"><option value="ball">탁구공</option><option value="bottle">빈 요구르트병</option></select></label></p><p>빈 곳을 눌러 추가하고, 물체를 끌어서 옮기세요. 선택한 물체는 방향키로 미세 조정할 수 있어요.</p><button id="fill">선택 종류 25개 채우기</button> <button id="empty">선택 종류 비우기</button><p id="manifest"></p><p><label><input id="lockTrial" type="checkbox"> 같은 실험 조건 유지</label> <small id="trialLabel"></small></p><small>○ 탁구공　▣ 병 · 오른쪽이 차량 앞</small></div><div><b>차량 앞 →</b><canvas id="deck" width="364" height="252" tabindex="0" aria-label="화물 자유 배치판. 방향키로 선택한 화물을 이동하고 Delete 키로 삭제합니다."></canvas><button id="removePiece">선택 물체 빼기</button><small id="placeHint" role="status"></small></div><div><b>주행 중 적재판 →</b><canvas id="liveDeck" width="220" height="150"></canvas><small id="delivery"></small></div></div><canvas id="map" width="750" height="510" aria-label="첨부된 재규어 기본 맵. 왼쪽 아래에서 오른쪽 방향으로 출발"></canvas>
+<div id="gripPanel" hidden><canvas id="gripZoom" width="244" height="110" aria-label="차량 앞 집게 확대"></canvas><b id="gripState"></b></div><div class="foot"><strong>전방 센서</strong><small class="state" id="observation" role="status"></small><div class="sensors" id="sensors"></div><small class="state">로봇 기준 왼쪽 SS1 → 오른쪽 SS7 · 짙은 초록은 선 감지</small></div></section>
+<section><div class="bar"><h2>주행 코드</h2><span class="tag" id="current">입력 대기</span></div>
+<div class="submission"><label>팀 이름 <input id="team" maxlength="24" placeholder="예: 1조"></label> <button id="saveProgram">프로그램 저장</button></div><textarea id="code" spellcheck="false" aria-label="학생 주행 코드"></textarea><div class="controls"><button id="run">▶ 전체 실행</button><button id="step">한 줄 실행</button><button id="reset">초기화</button></div><div class="status" id="status" role="status">코드를 실행해 도착 교차로까지 주행해 보세요.</div>
+<details><summary>풀이 예시</summary><pre id="answer"></pre></details><details open><summary>명령어 안내</summary><p><code>gl1~gl8 / gr1~gr8 / gt1~gt8</code><br>선을 따라 왼쪽 / 오른쪽 / 양쪽 교차로를 감지해요. gl1은 최고 속도, gl8은 최저 속도예요. 화면에서 1단계는 8단계보다 14배 빨라요. gr·gt도 1이 가장 빠르고 8이 가장 느려요. 해당 교차로에 차체 중심이 닿으면 다음 명령으로 넘어가요.</p>
+<p><code>elt1~elt8</code> 좌회전 · <code>ert1~ert8</code> 우회전<br>1이 가장 빠르고 8이 가장 느려요. 숫자를 생략하면 4단계예요. 숫자형 회전은 시뮬레이터용 명령이에요.<br>지정한 방향으로 돌다가 전방 중앙 센서가 검은 선을 만나면 멈춰요. 출발할 때 이미 밟고 있던 선은 벗어난 뒤 다시 감지해요. 빠르게 진입하면 관성으로 회전선을 지나칠 수 있어요.</p><p><code>motor(10,10,500);</code><br>왼쪽·오른쪽 바퀴를 지정한 값으로 0.5초 구동해요. 바퀴 값은 −20~20이며, 음수는 후진이에요.</p>
+<p><code>grap</code> 물체 잡기 · <code>open</code> 현재 위치에 내려놓기<br>집게 미션 전용이며 각 동작에 0.4초가 걸려요.</p><p><code>d1~d9</code> · 다음 명령까지 0.1~0.9초 기다려요.</p></details><p class="note">한 줄에 명령 하나를 입력하세요. 코드를 수정하거나 초기화하면 출발점으로 돌아가요. 속도·회전각·저속 감지 시간은 연습용 설정이에요. 일부 교차로에서는 너무 느리게 접근하면 센서 반응 간격이 길어져 교차로 판정이 빠져요.</p><div id="rankpanel" class="race"><b>이 기기의 경기 기록</b><ol id="ranks"></ol></div></section></main>
+<article id="worksheet"><h2 id="sheetTitle">세 지점 최단 시간 주행</h2><p id="sheetBenchmark"></p><p>팀 이름 ____________________　이름 ____________________</p><p id="sheetRules">왼쪽 아래에서 출발해 A·B·C를 원하는 순서로 통과한 뒤 오른쪽 위 도착선에서 코드를 마치세요. 주행과 회전, 지연 시간을 모두 합산합니다.</p><h3>1. 경로 설계</h3><p>위 지도에 경로를 그리고 회전 전 속도를 조절할 곳에 표시하세요.</p><p id="sheetOrder">방문 순서　출발 → ______ → ______ → ______ → 도착</p><h3>2. 기록 비교</h3><table><tr><th>시도</th><th>경로 또는 속도 변경</th><th>완주 기록 / 실패 원인</th></tr><tr><td>1차</td><td></td><td></td></tr><tr><td>2차</td><td></td><td></td></tr><tr><td>3차</td><td></td><td></td></tr></table><h3>3. 어느 구간에서 시간을 줄였나요?</h3><p>두 번의 기록과 변경한 명령을 근거로 설명하세요.</p>_______________________________________________________________</article>
+<script>
+'use strict';
+function simulator(scope, lane=false){
+const elements=new Map(Array.from(scope.querySelectorAll('[id]'),e=>[e.id,e]));
+const el=id=>elements.get(id), canvas=el('map'), ctx=canvas.getContext('2d'), editor=el('code');
+// Track centerlines in image coordinates. The empty central region has no internal grid lines.
+const tracks=[];
+const h=(y,x,u)=>tracks.push([x,y,u,y]), v=(x,y,w)=>tracks.push([x,y,x,w]);
+for(const y of [68,125,178,230,339,393])h(y,130,660);
+h(446,63,660); h(287,130,280); h(287,514,660); h(24,620,702);
+for(const x of [130,280,514])v(x,68,446);
+v(660,24,446); v(63,419,465);
+v(207,178,339); v(587,178,339);
+for(const x of [356,435]){v(x,68,230);v(x,339,446);}
+const directions=[[1,0],[0,1],[-1,0],[0,-1]];
+let nodes=new Map();
+function node(x,y){const key=x+','+y;if(!nodes.has(key))nodes.set(key,{x,y,edges:Array(4).fill(null)});return nodes.get(key);}
+function onSegment(x,y,[a,b,c,d]){return x>=a&&x<=c&&y>=b&&y<=d;}
+function buildNodes(tracks){for(const seg of tracks){node(seg[0],seg[1]);node(seg[2],seg[3]);}
+for(const [x,y,u,w] of tracks.filter(t=>t[1]===t[3]))for(const seg of tracks.filter(t=>t[0]===t[2]))if(onSegment(seg[0],y,[x,y,u,w])&&onSegment(seg[0],y,seg))node(seg[0],y);
+for(const seg of tracks){const axis=seg[0]===seg[2]?1:0;const row=[...nodes.values()].filter(p=>onSegment(p.x,p.y,seg)).sort((a,b)=>a.x-b.x||a.y-b.y);for(let i=1;i<row.length;i++){row[i-1].edges[axis]=row[i];row[i].edges[axis+2]=row[i-1];}}
+}
+buildNodes(tracks);let origin=node(63,446);
+function destination(n,d,side){while(n.edges[d]){n=n.edges[d];const left=n.edges[(d+3)%4],right=n.edges[(d+1)%4];if(side==='l'?left:side==='r'?right:left&&right)return {n,ok:true};}return {n,ok:false};}
+function solutions(){const queue=[{n:origin,d:0,code:[]}],seen=new Set(),goals=new Map();
+ for(let i=0;i<queue.length;i++){const {n,d,code}=queue[i],key=[n.x,n.y,d].join();if(seen.has(key))continue;seen.add(key);
+ if(code.length&&!goals.has(n))goals.set(n,code);
+ for(const side of ['l','r','t']){const hit=destination(n,d,side);if(hit.ok)queue.push({n:hit.n,d,code:[...code,'g'+side+'4']});}
+ for(const [turn,delta] of [['elt',3],['ert',1]]){const dir=(d+delta)%4;if(n!==origin&&n.edges[dir])queue.push({n,d:dir,code:[...code,turn]});}
+ }return goals;}
+const trainingGaps=new Map([[node(130,446),5],[node(514,230),6],[node(280,178),5]]);
+const solutionsByGoal=solutions();let goal;
+const ink=document.createElement('canvas');ink.width=750;ink.height=510;const pen=ink.getContext('2d');let pixels;
+function paintTracks(lines){pen.clearRect(0,0,750,510);pen.lineWidth=7;pen.lineCap='butt';pen.strokeStyle='#34463d';pen.beginPath();for(const [x,y,u,w] of lines){pen.moveTo(x,y);pen.lineTo(u,w);}pen.stroke();pixels=pen.getImageData(0,0,750,510).data;}
+const normalNodes=nodes,normalOrigin=origin;
+// Each polyline traces one continuous stripe on the worksheet.
+const gatheringTemplates=[
+ {name:'분류 배송',start:[173,437],end:[594,435],up:true,
+  objects:[[139,308,1],[178,165,2],[586,214,1],[524,310,2],[633,126,2]],
+  depots:[[54,66,94,70],[622,312,69,52]],
+  paths:[[[40,176],[97,176]],[[97,234],[97,106],[278,106],[278,234],[97,234]],[[135,234],[135,165],[226,165],[226,106]],[[178,165],[178,68]],[[278,176],[487,176],[487,126],[682,126],[682,176],[715,176]],[[534,126],[534,214],[633,214],[633,126]],[[586,126],[586,79]],[[586,214],[586,435]],[[524,364],[524,310],[586,310]],[[622,364],[622,312],[691,312],[691,421],[486,421],[486,364]],[[451,364],[715,364]],[[594,421],[594,435],[586,435]],[[173,437],[173,234]],[[69,437],[139,437],[139,308],[69,308],[69,437]],[[104,308],[104,437]],[[39,370],[139,370]],[[69,403],[246,403],[246,341],[69,341]],[[246,370],[313,370]]]},
+ {name:'계단 우회',start:[62,255],end:[686,255],objects:[[220,170,1],[455,255,1]],depots:[[548,80,74,65]],
+ paths:[[[62,255],[220,255],[220,170],[455,170],[455,255],[686,255]],[[140,60],[140,447]],[[610,60],[610,447]],[[140,109],[610,109]],[[375,60],[375,109]],[[140,375],[610,375]],[[295,375],[295,255],[375,255],[375,447]]]},
+ {name:'중앙 사각 루프',start:[62,255],end:[686,255],objects:[[220,171,1],[460,375,2],[534,255,2]],depots:[[101,333,70,65],[576,80,71,62]],
+ paths:[[[62,255],[140,255]],[[140,109],[220,109],[220,375],[140,375],[140,109]],[[220,171],[298,171]],[[220,300],[298,300]],[[298,109],[610,109],[610,375],[298,375],[298,109]],[[375,60],[375,447]],[[534,109],[534,375]],[[375,255],[534,255]],[[460,375],[460,300],[534,300]],[[610,255],[686,255]]]},
+ {name:'안팎 순환',start:[62,255],end:[686,255],objects:[[220,255,1],[534,322,1],[453,109,1]],depots:[[561,330,73,66]],
+ paths:[[[62,255],[220,255]],[[140,109],[610,109],[610,375],[140,375],[140,109]],[[220,177],[534,177],[534,322],[220,322],[220,177]],[[610,255],[686,255]],... [218,296,375,453,531].map(x=>[[x,60],[x,109]])]}
+];
+function connectGatherMaps(left,right){
+ const objects=[],depots=[],paths=[];
+ function place(half,offset){
+  const x=value=>Math.round((value-62)*.48)+offset;
+  const point=([px,py])=>[x(px),py];
+  const base=depots.length;
+  for(const [px,py,id] of half.objects)objects.push([x(px),py,id+base]);
+  for(const [px,py,w,h] of half.depots)depots.push([x(px),py,x(px+w)-x(px),h]);
+  for(const path of half.paths)paths.push(path.map(point));
+  return {start:point(half.start),end:point(half.end)};
+ }
+ const first=place(left,40),second=place(right,398);
+ paths.push([first.end,second.start]);
+ return {name:left.name+' + '+right.name,start:first.start,end:second.end,objects,depots,paths};
+}
+const [sortingMap,stairsMap,loopMap,ringMap]=gatheringTemplates;
+const gatheringMaps=[connectGatherMaps(stairsMap,loopMap),connectGatherMaps(loopMap,ringMap),connectGatherMaps(ringMap,stairsMap),sortingMap];
+function gathering(){return el('mission').selectedIndex>=9;}
+let gatherMap=gatheringMaps[0],gatherLines=[],objects=[],packages=[],held=-1,printing=false,jaw=1;
+function selectGatherMap(index){
+ gatherMap=gatheringMaps[index];objects=gatherMap.objects;gatherLines=[];
+ for(const path of gatherMap.paths)for(let i=1;i<path.length;i++){
+ const [x,y]=path[i-1],[u,v]=path[i];gatherLines.push([Math.min(x,u),Math.min(y,v),Math.max(x,u),Math.max(y,v)]);}
+ nodes=new Map();buildNodes(gatherLines);origin=node(...gatherMap.start);
+}
+function startPose(){const a=gathering()&&gatherMap.up?-Math.PI/2:0;return {x:origin.x,y:origin.y,a};}
+function newPackages(){packages=objects.map(([x,y,depot])=>({x,y,depot,done:false}));held=-1;jaw=1;}
+function gripArt(g,opening){
+ const spread=7.7+opening*7;
+ g.lineCap='round';g.lineJoin='round';
+ for(const side of [-1,1]){g.beginPath();g.moveTo(8,side*6);g.lineTo(16,side*spread);g.lineTo(27,side*spread);g.lineTo(29,side*(spread-2));
+ g.strokeStyle='#183b42';g.lineWidth=4;g.stroke();g.strokeStyle='#60d3cc';g.lineWidth=1.6;g.stroke();}
+}
+function gripZoom(){
+ const g=el('gripZoom').getContext('2d');g.clearRect(0,0,244,110);g.save();g.translate(78,55);g.scale(2.8,2.8);
+ g.fillStyle='#e7753f';g.fillRect(-22,-10,30,20);
+ for(const [i,o] of packages.entries()){
+ const dx=o.x-robot.x,dy=o.y-robot.y,c=Math.cos(robot.a),sn=Math.sin(robot.a),x=dx*c+dy*sn,y=-dx*sn+dy*c;
+ g.fillStyle='#ffc857';g.fillRect(x-6,y-6,12,12);g.fillStyle='#302b22';g.font='bold 7px sans-serif';g.fillText(String(i+1),x-2,y+2);}
+ gripArt(g,jaw);g.restore();
+ el('gripState').textContent=active?.kind==='grip'&&running?(active.t==='grap'?'집게 닫는 중':'집게 여는 중'):held>=0?(held+1)+'번 운반 중':jaw>.5?'집게 열림':'빈 집게 닫힘';
+}
+function drawGather(){
+ gatherMap.depots.forEach(([x,y,w,h],i)=>{ctx.fillStyle='rgba(222,159,57,.28)';ctx.fillRect(x,y,w,h);ctx.fillStyle='#754710';ctx.fillText('목적지 '+(i+1),x+3,y+19);});
+ for(const [i,o] of packages.entries()){const x=printing?objects[i][0]:o.x,y=printing?objects[i][1]:o.y;
+ ctx.fillStyle=!printing&&o.done?'#64b69c':'#ffc857';ctx.fillRect(x-7,y-7,14,14);ctx.strokeStyle='#66501e';ctx.lineWidth=1;ctx.strokeRect(x-7,y-7,14,14);ctx.fillStyle='#30261c';ctx.fillText(String(i+1),x-4,y+5);}
+ el('clock').textContent=elapsed.toFixed(3)+'초';el('visited').textContent='배송 '+packages.filter(o=>o.done).length+'/'+packages.length;
+}
+const speeds=[0,280,195,135,95,65,43,30,20];
+const turnSeconds=[0,.30,.40,.52,.65,.85,1.10,1.40,1.80];
+const braking=1050; // Screen pixels per simulated second squared.
+let approachSpeed=0, approachLine=0;
+let robot,commands,index,active,running,continuous,frame,last,trail,finished;
+const offsets=[-16,-11,-6,0,6,11,16];
+const indicators=offsets.map((_,i)=>{let e=document.createElement('span');e.textContent='SS'+(i+1);el('sensors').append(e);return e;});
+function probes(){const c=Math.cos(robot.a),s=Math.sin(robot.a);return offsets.map(w=>{const x=robot.x+13*c-w*s,y=robot.y+13*s+w*c;return {x,y,on:x>=0&&x<749&&y>=0&&y<509&&pixels[(Math.round(y)*750+Math.round(x))*4+3]>100};});}
+const courses=[
+ {name:'경기 1 · 기본 코스', benchmark:17.170, stops:[[280,339],[207,178],[514,125]]},
+ {name:'경기 2 · 오른쪽 격자', benchmark:16.845, stops:[[435,393],[587,287],[514,178]]},
+ {name:'경기 3 · 양쪽 날개', benchmark:18.730, stops:[[207,287],[587,230],[356,68]]},
+ {name:'경기 4 · 중앙 우회', benchmark:18.735, stops:[[435,339],[280,230],[660,393]]}
+];
+let course,checkpoints=[],scoreKey;
+function difference(time){
+ const ms=Math.round((time-course.benchmark)*1000);
+ return ms===0?'기준과 동일':(Math.abs(ms)/1000).toFixed(3)+'초 '+(ms<0?'단축':'초과');
+}
+let visited=new Set(),elapsed=0,carry=0,ranking=[];
+function racing(){return el('mission').selectedIndex>=4&&el('mission').selectedIndex<=7;}
+function loadBoard(){ranking=[];if(lane)return;
+try{const saved=JSON.parse(localStorage.getItem(scoreKey)||'[]');if(Array.isArray(saved))ranking=saved.filter(r=>typeof r.name==='string'&&Number.isFinite(r.time));}catch{}}
+function leaderboard(){const list=el('ranks');list.textContent='';for(const row of ranking){const item=document.createElement('li');item.textContent=row.name+' · '+(gathering()?row.time.toFixed(3)+'초':cargoMission()?row.score+'점 · '+row.time.toFixed(3)+'초':row.time.toFixed(3)+'초 · '+difference(row.time));list.append(item);}}
+function cargoMission(){return el('mission').selectedIndex===8;}
+const slots=[-8,-4,0,4,8],rows=[-6,-3,0,3,6];
+function defaultPosition(type,i){return {x:slots[i%5]+(type==='ball'?-.85:.85),y:rows[Math.floor(i/5)]};}
+const placement={ball:new Map([[12,defaultPosition('ball',12)]]),bottle:new Map([[14,defaultPosition('bottle',14)]])};
+const deck=el('deck');
+let picked=null,drag=null;
+let cargo=[],motion,settling=0,delivered=false;
+let trialSeed=0;
+function trialValues(seed,slot,type){
+ let state=(seed+Math.imul(slot*2+(type==='ball'?1:2),2654435761))>>>0;
+ return ()=>{state=(state+0x6d2b79f5)>>>0;let v=Math.imul(state^(state>>>15),1|state);v^=v+Math.imul(v^(v>>>7),61|v);return ((v^(v>>>14))>>>0)/2147483648-1;};
+}
+function loadCargo(perturb=false){
+ cargo=[];
+ for(const type of ['ball','bottle'])for(const [pos,point] of [...placement[type]].sort((a,b)=>a[0]-b[0])){
+  const {x,y}=point;
+  const noise=perturb?trialValues(trialSeed,pos,type):()=>0;
+  cargo.push({type,x:x+.28*noise(),y:y+.22*noise(),grip:1+.04*noise(),vx:0,vy:0,fallen:false});
+ }
+ motion={vx:0,vy:0,omega:0};settling=0;delivered=false;
+}
+function updateDeck(){
+ for(const id of ['fill','empty','piece','lockTrial'])el(id).disabled=running;
+ el('removePiece').disabled=running||!picked;
+ el('manifest').textContent='탁구공 '+placement.ball.size+'/25 · 병 '+placement.bottle.size+'/25';
+ paintLayout();
+}
+function paintLayout(){
+ const g=deck.getContext('2d'),w=deck.width,h=deck.height;
+ g.fillStyle='#edf1e7';g.fillRect(0,0,w,h);g.strokeStyle='#b5c4b4';g.lineWidth=1;
+ g.beginPath();for(let i=1;i<5;i++){g.moveTo(i*w/5,0);g.lineTo(i*w/5,h);g.moveTo(0,i*h/5);g.lineTo(w,i*h/5);}g.stroke();
+ for(const type of ['ball','bottle'])for(const [id,p] of placement[type]){
+ const x=(p.x+13)*w/26,y=(p.y+9)*h/18,r=.8*w/26;
+ g.beginPath();if(type==='ball')g.arc(x,y,r,0,Math.PI*2);else g.rect(x-r,y-r,2*r,2*r);
+ g.fillStyle=type==='ball'?'white':'#dc8957';g.fill();g.strokeStyle=picked?.id===id&&picked.type===type?'#007b64':'#404c42';g.lineWidth=picked?.id===id&&picked.type===type?4:1.5;g.stroke();}
+}
+function bounded(x,y){return {x:Math.max(-12,Math.min(12,x)),y:Math.max(-8,Math.min(8,y))};}
+function pointerPosition(e){const box=deck.getBoundingClientRect();return {x:(e.clientX-box.left)/box.width*26-13,y:(e.clientY-box.top)/box.height*18-9};}
+function room(point,ignore){for(const type of ['ball','bottle'])for(const [id,p] of placement[type]){
+ if(ignore?.type===type&&ignore.id===id)continue;if(Math.hypot(point.x-p.x,point.y-p.y)<1.6-1e-8)return false;}return true;}
+function addPiece(type,p){const items=placement[type];if(items.size===25||!room(p))return false;
+ let id=0;while(items.has(id))id++;items.set(id,p);picked={type,id};return true;}
+deck.onpointerdown=e=>{
+ if(running||drag||e.button!==0)return;e.preventDefault();deck.focus();const p=pointerPosition(e);
+ let hit=null,nearest=1.05;for(const type of ['ball','bottle'])for(const [id,at] of placement[type]){
+ const d=Math.hypot(p.x-at.x,p.y-at.y);if(d<nearest){nearest=d;hit={type,id};}}
+ if(!hit){if(!addPiece(el('piece').value,bounded(p.x,p.y))){el('placeHint').textContent='다른 물체와 간격을 두고 종류별 25개까지 배치하세요.';return;}}
+ else picked=hit;
+ const at=placement[picked.type].get(picked.id);drag={pointer:e.pointerId,dx:at.x-p.x,dy:at.y-p.y};
+ deck.setPointerCapture(e.pointerId);el('placeHint').textContent='';reset();
+};
+deck.onpointermove=e=>{if(!drag||running||e.pointerId!==drag.pointer)return;
+ const p=pointerPosition(e),q=bounded(p.x+drag.dx,p.y+drag.dy);
+ if(room(q,picked)){placement[picked.type].set(picked.id,q);reset();}};
+deck.onpointerup=deck.onpointercancel=deck.onlostpointercapture=e=>{if(drag?.pointer===e.pointerId)drag=null;};
+function removePicked(){if(running||!picked)return;placement[picked.type].delete(picked.id);picked=null;reset();}
+el('removePiece').onclick=removePicked;
+deck.onkeydown=e=>{if(running||!picked)return;
+ if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();removePicked();return;}
+ const v={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];if(!v)return;e.preventDefault();
+ const p=placement[picked.type].get(picked.id),q=bounded(p.x+.08*v[0],p.y+.08*v[1]);
+ if(room(q,picked)){placement[picked.type].set(picked.id,q);reset();}};
+el('fill').onclick=()=>{const type=el('piece').value;
+ for(let i=0;i<25;i++)addPiece(type,defaultPosition(type,i));
+ for(let y=-8;y<=8&&placement[type].size<25;y+=1)for(let x=-12;x<=12&&placement[type].size<25;x+=1)addPiece(type,{x,y});
+ reset();};
+el('empty').onclick=()=>{placement[el('piece').value].clear();picked=null;reset();};
+function cargoScore(){
+ let balls=0,bottles=0,drops=0;
+ for(const o of cargo){if(o.fallen)drops++;else if(o.type==='ball')balls++;else bottles++;}
+ return {balls,bottles,drops,score:10-drops+(delivered?3*balls+2*bottles:0)};
+}
+function liveDeck(){
+ const g=el('liveDeck').getContext('2d');g.fillStyle='#e9e5d8';g.fillRect(0,0,220,150);
+ for(const o of cargo){if(o.fallen)continue;const x=110+o.x*8,y=75+o.y*8;
+ g.fillStyle=o.type==='ball'?'#fff':'#db8957';g.strokeStyle='#384635';g.lineWidth=1.5;
+ g.beginPath();if(o.type==='ball')g.arc(x,y,5.6,0,Math.PI*2);else g.rect(x-5,y-5,10,10);g.fill();g.stroke();}
+ const t=cargoScore();el('delivery').textContent='현재 '+t.score+'점 · 낙하 '+t.drops+'개 · 남은 공 '+t.balls+' / 병 '+t.bottles;
+}
+function cargoContacts(){
+ for(let i=0;i<cargo.length;i++){const a=cargo[i];if(a.fallen)continue;
+ for(let j=i+1;j<cargo.length;j++){const b=cargo[j];if(b.fallen)continue;
+ let dx=b.x-a.x,dy=b.y-a.y;const dist=Math.hypot(dx,dy);if(dist>=1.6)continue;
+ dx=dist?dx/dist:1;dy=dist?dy/dist:0;
+ const share=a.type===b.type?.5:a.type==='ball'?.7:.3;
+ const overlap=1.6-dist,closing=Math.max(0,(a.vx-b.vx)*dx+(a.vy-b.vy)*dy);
+ a.x-=dx*overlap*share;a.y-=dy*overlap*share;b.x+=dx*overlap*(1-share);b.y+=dy*overlap*(1-share);
+ a.vx-=dx*closing*share;a.vy-=dy*closing*share;b.vx+=dx*closing*(1-share);b.vy+=dy*closing*(1-share);
+ }}
+}
+function cargoStep(dt,prev){
+ const blend=1-Math.exp(-dt/.14);
+ const ax=((robot.x-prev.x)/dt-motion.vx)*blend/dt, ay=((robot.y-prev.y)/dt-motion.vy)*blend/dt;
+ const angleChange=Math.atan2(Math.sin(robot.a-prev.a),Math.cos(robot.a-prev.a));
+ const angularAccel=(angleChange/dt-motion.omega)*blend/dt;
+ motion.vx+=ax*dt;motion.vy+=ay*dt;motion.omega+=angularAccel*dt;
+ const c=Math.cos(robot.a),sn=Math.sin(robot.a);
+ for(const o of cargo){
+  if(o.fallen)continue;
+  const fx=-(ax*c+ay*sn)+angularAccel*o.y+motion.omega**2*o.x;
+  const fy=ax*sn-ay*c-angularAccel*o.x+motion.omega**2*o.y;
+  const ball=o.type==='ball',force=Math.hypot(fx,fy);
+  const resistance=(ball?90:410)*o.grip, response=ball?.18:.13;
+  const factor=response*Math.max(0,1-resistance/(force||1));
+  const damping=Math.exp(-dt*(ball?2.8:7));
+  o.vx=(o.vx+fx*factor*dt)*damping;o.vy=(o.vy+fy*factor*dt)*damping;
+  o.x+=o.vx*dt;o.y+=o.vy*dt;
+ }
+ cargoContacts();
+ for(const o of cargo)if(!o.fallen&&(Math.abs(o.x)>13||Math.abs(o.y)>9))o.fallen=true;
+}
+function mark(){if(!racing()&&!cargoMission())return;const f=robot;checkpoints.forEach((n,i)=>{if(Math.hypot(f.x-n.x,f.y-n.y)<5)visited.add(i);});}
+function draw(){ctx.clearRect(0,0,750,510);ctx.fillStyle='#d1ddce';for(let x=10;x<750;x+=18)for(let y=10;y<510;y+=18)ctx.fillRect(x,y,1.5,1.5);ctx.drawImage(ink,0,0);ctx.font='bold 15px sans-serif';ctx.fillStyle='#415849';ctx.fillText(gathering()&&gatherMap.up?'출발 ↑':'출발 →',gathering()?origin.x-32:43,gathering()?origin.y+35:494);if(gathering())drawGather();ctx.beginPath();ctx.arc(goal.x,goal.y,14,0,Math.PI*2);ctx.strokeStyle='#ce652c';ctx.lineWidth=4;ctx.stroke();ctx.fillStyle='#94401d';ctx.fillText(gathering()?'END':(racing()||cargoMission())?'도착':'목표',goal.x+16,goal.y-8);
+if(racing()||cargoMission()){checkpoints.forEach((n,i)=>{ctx.beginPath();ctx.arc(n.x,n.y,11,0,Math.PI*2);ctx.strokeStyle=visited.has(i)?'#36a76d':'#3458ad';ctx.stroke();ctx.fillStyle='#183779';ctx.fillText('ABC'[i],n.x+12,n.y-10);});el('clock').textContent=elapsed.toFixed(3)+'초';el('visited').textContent='통과 '+[...visited].map(i=>'ABC'[i]).join(' → ')+' ('+visited.size+'/3)';}
+ctx.strokeStyle='#86b961';ctx.lineWidth=2.5;ctx.beginPath();trail.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();
+ctx.save();ctx.translate(robot.x,robot.y);ctx.rotate(robot.a);// Top-down racing chassis. The front sensor bar stays visible at x=13.
+function panel(points,color){ctx.beginPath();points.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.closePath();ctx.fillStyle=color;ctx.fill();}
+ctx.fillStyle='#21302e';for(const y of [-13,8]){ctx.fillRect(-17,y,9,5);ctx.fillRect(3,y,8,5);}
+panel([[-20,-8],[-15,-11],[0,-9],[11,-6],[14,-3],[14,3],[11,6],[0,9],[-15,11],[-20,8]],'#c74722');
+panel([[-16,-8],[-7,-9],[8,-5],[13,0],[8,5],[-7,9],[-16,8]],'#ff8240');
+panel([[-11,-5],[-4,-6],[3,-4],[5,0],[3,4],[-4,6],[-11,5]],'#203c42');
+panel([[-8,-4],[-4,-4],[1,-3],[-4,-1]],'#a6dad0');
+ctx.fillStyle='#fff4cf';ctx.fillRect(5,-1,7,2);ctx.fillRect(7,-6,4,2);ctx.fillRect(7,4,4,2);
+ctx.fillStyle='#283630';ctx.fillRect(-22,-12,4,24);ctx.fillRect(12,-16,2,32);
+if(cargoMission()){
+ ctx.fillStyle='#766447';ctx.fillRect(-16,-10,29,20);
+ liveDeck();for(const o of cargo){if(o.fallen)continue;ctx.fillStyle=o.type==='ball'?'#fbfcff':'#ffe7ae';ctx.strokeStyle='#8b4822';ctx.lineWidth=1;ctx.beginPath();ctx.arc(o.x-2,o.y,0.8,0,Math.PI*2);ctx.fill();ctx.stroke();}
+}if(gathering()){gripArt(ctx,printing?1:jaw);if(!printing)gripZoom();}ctx.restore();probes().forEach((p,i)=>{ctx.fillStyle=p.on?'#90e459':'#fff';ctx.strokeStyle='#264333';ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(p.x,p.y,2.5,0,Math.PI*2);ctx.fill();ctx.stroke();indicators[i].className=p.on?'on':'';});}
+function say(msg,error=false){el('status').textContent=msg;el('status').classList.toggle('error',error);}
+let teacher=lane,selectedEntry=null;
+function controls(){el('saveProgram').disabled=running;el('team').readOnly=teacher||running;el('mission').disabled=teacher;el('new').disabled=teacher;if(cargoMission())updateDeck();editor.readOnly=running||teacher;el('run').disabled=running;el('step').disabled=running;el('printSheet').disabled=running;}
+function reset(){if(gathering())newPackages();if(cargoMission())loadCargo();visited.clear();elapsed=0;carry=0;cancelAnimationFrame(frame);approachSpeed=0;approachLine=0;el('observation').textContent='주행 관찰 기록';robot=startPose();commands=[];index=0;active=null;finished=false;running=false;trail=[{...robot}];el('current').textContent='입력 대기';controls();say('출발 준비 · 전체 실행 또는 한 줄 실행을 누르세요.');draw();}
+function parse(){let pos=0,out=[];for(const [i,raw] of editor.value.split('\n').entries()){let t=raw.split('//')[0].trim().replace(/;$/,'').trim();const row={line:i+1,start:pos,stop:pos+raw.length,t};pos+=raw.length+1;if(!t)continue;let m;if((m=/^g([lrt])([1-8])$/.exec(t)))out.push({...row,kind:'line',side:m[1],level:+m[2]});else if((m=/^e([lr])t([1-8]?)$/.exec(t)))out.push({...row,kind:'turn',delta:m[1]==='l'?-1:1,level:Number(m[2]||4)});else if(gathering()&&(t==='grap'||t==='open'))out.push({...row,kind:'grip'});else if((m=/^d([1-9])$/.exec(t)))out.push({...row,kind:'delay',ms:+m[1]*100});else if((m=/^motor\s*\(\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(\d+)\s*\)$/.exec(t))&&Math.abs(+m[1])<=20&&Math.abs(+m[2])<=20&&+m[3]<=65000)out.push({...row,kind:'motor',l:+m[1],r:+m[2],ms:+m[3]});else throw Object.assign(new Error(row.line+'행 입력을 확인하세요. '+t),{row});}if(!out.length)throw new Error('실행할 명령을 입력하세요.');return out;}
+function select(row){if(lane)return;editor.focus({preventScroll:true});editor.setSelectionRange(row.start,row.stop);el('current').textContent=row.line+'행 · '+row.t;}
+function halt(msg,error=false){running=false;controls();say(msg,error);}
+function front(){return {x:robot.x+13*Math.cos(robot.a),y:robot.y+13*Math.sin(robot.a)};}
+function fail(message){finished=true;halt(active.line+'행 · '+message,true);}
+function begin(){
+ const cmd=commands[index];select(cmd);active={...cmd,time:0};
+ if(gathering()){
+  if(cmd.kind==='grip'){active.fromJaw=jaw;say(cmd.t==='grap'?'집게 닫는 중':'집게 여는 중');return;}
+ }
+ if(cmd.kind==='motor'||cmd.kind==='delay'){say(cmd.kind==='motor'?'모터 구동 중':'다음 명령을 기다리는 중');return;}
+ const f=robot,d=(Math.round(robot.a/(Math.PI/2))%4+4)%4;
+ const near=[...nodes.values()].find(n=>Math.hypot(n.x-f.x,n.y-f.y)<1e-6);
+ if(cmd.kind==='turn'){
+ const stoppingDistance=approachSpeed**2/(2*braking);
+ // First sweep retains forward momentum. A small offset can be corrected.
+ const sweep=Math.atan2(18,stoppingDistance);
+ Object.assign(active,{pivot:{x:robot.x,y:robot.y},from:robot.a,distance:stoppingDistance,sweep,
+   clear:!probes()[3].on, recover:stoppingDistance<=16});
+ approachSpeed=0;
+ say(cmd.delta<0?'왼쪽 선으로 회전 중':'오른쪽 선으로 회전 중');return;}
+ const [dx,dy]=directions[d];
+ let base=near;
+ if(!base){
+   const sensors=probes().filter(p=>p.on);
+   let best=Infinity;
+   for(const n of nodes.values()){
+     const end=n.edges[d];if(!end)continue;
+     const length=(end.x-n.x)*dx+(end.y-n.y)*dy;
+     const along=(f.x-n.x)*dx+(f.y-n.y)*dy;
+     const lateral=Math.abs((n.x-f.x)*dy-(n.y-f.y)*dx);
+     // Each illuminated probe must be on this forward stripe, not just a crossing.
+     const detected=sensors.some(p=>{
+       const t=(p.x-n.x)*dx+(p.y-n.y)*dy;
+       return t>=0&&t<=length&&Math.abs((p.x-n.x)*dy-(p.y-n.y)*dx)<=4;
+     });
+     if(along>=-14&&along<length&&((detected)||(along>=0&&lateral<1e-6))&&lateral<best){
+       base=along<0&&n.edges[(d+2)%4]?n.edges[(d+2)%4]:n;best=lateral;
+     }
+   }
+ }
+ if(!base||!base.edges[d]){fail('진행 방향의 선을 잡지 못했어요. 앞 센서 위치와 방향을 확인하세요.');return;}
+ const hit=destination(base,d,cmd.side);
+ Object.assign(active,{target:hit.n,ok:hit.ok,dx,dy,d});
+ const offset=(robot.x-base.x)*(-dy)+(robot.y-base.y)*dx;
+ const heading=robot.a-d*Math.PI/2;
+ const distance=(hit.n.x-robot.x)*dx+(hit.n.y-robot.y)*dy;
+ if((Math.abs(offset)>1e-6||Math.abs(Math.sin(heading))>1e-6)&&distance>0){
+   active.capture={offset,slope:Math.tan(heading),length:Math.min(distance,Math.max(20,3*Math.abs(offset))),travel:0};
+ }else robot.a=d*Math.PI/2;
+ say('선을 따라 교차로를 찾고 있어요.');
+}
+function complete(){mark();const label=active.t;index++;active=null;if(index===commands.length){if(cargoMission()){active={kind:'unload',line:commands[index-1].line};settling=.75;return;}finished=true;const f=robot;
+if(gathering()){
+ if(!packages.every(o=>o.done)||Math.hypot(f.x-goal.x,f.y-goal.y)>10){halt('기록 미인정 · 모든 목표물을 지정 목적지에 배송하고 END에서 마치세요.',true);return;}
+ const name=el('team').value.trim()||'이름 없는 팀';ranking.push({name,time:elapsed});ranking.sort((a,b)=>a.time-b.time);
+ try{if(!lane)localStorage.setItem(scoreKey,JSON.stringify(ranking));}catch{}leaderboard();halt('수거 완료 · '+name+' '+elapsed.toFixed(3)+'초');return;}
+if(racing()){
+ const arrived=Math.hypot(f.x-goal.x,f.y-goal.y)<5;
+ if(!arrived||visited.size!==3){halt('기록 미인정 · '+(!arrived?'도착선에서 주행을 마치세요. ':'')+checkpoints.map((_,i)=>visited.has(i)?'':'ABC'[i]).filter(Boolean).map(x=>x+' 미통과').join(' · '));return;}
+ const name=el('team').value.trim()||'이름 없는 팀';ranking.push({name,time:elapsed});ranking.sort((a,b)=>a.time-b.time);
+ try{if(!lane)localStorage.setItem(scoreKey,JSON.stringify(ranking));}catch{}leaderboard();halt('완주 · '+name+' '+elapsed.toFixed(3)+'초 · '+difference(elapsed));return;
+}halt(Math.hypot(f.x-goal.x,f.y-goal.y)<5?'도착 성공 · 목표 지점에 도착했어요.':'코드 실행 완료 · 현재 위치를 확인하세요.');}else if(continuous)begin();else halt(label+' 완료 · 다음 줄을 실행해 보세요.');}
+function advance(dt){
+ if(!cargoMission()){advanceDrive(dt);return;}
+ const prev={...robot},line=active.line,stopping=active.kind==='unload';
+ if(stopping){settling-=dt;}else advanceDrive(dt);
+ cargoStep(dt,prev);mark();
+ if(stopping&&settling<=0){
+  finished=true;const f=robot;
+  if(visited.size!==3||Math.hypot(f.x-goal.x,f.y-goal.y)>=5){halt('운반 기록 미인정 · A·B·C와 도착선을 확인하세요.',true);return;}
+  delivered=true;const {score,balls,bottles,drops}=cargoScore(),name=el('team').value.trim()||'이름 없는 팀';
+  ranking.push({name,score,time:elapsed});ranking.sort((a,b)=>b.score-a.score||a.time-b.time);
+  try{if(!lane)localStorage.setItem(scoreKey,JSON.stringify(ranking));}catch{}
+  leaderboard();halt('운반 완료 · '+score+'점 · '+elapsed.toFixed(3)+'초 · 공 '+balls+'개, 병 '+bottles+'개 도착 · 낙하 '+drops+'개');
+ }
+}
+function inDepot(o){const [x,y,w,h]=gatherMap.depots[o.depot-1];return o.x>=x&&o.x<=x+w&&o.y>=y&&o.y<=y+h;}
+function movePackages(){
+ const c=Math.cos(robot.a),sn=Math.sin(robot.a);
+ for(const [i,o] of packages.entries()){
+  if(i===held){const f=front();o.x=f.x+6*c;o.y=f.y+6*sn;o.done=false;continue;}
+  // Resolve a round parcel against the oriented chassis, including during rotation.
+  const dx=o.x-robot.x,dy=o.y-robot.y;
+  let x=dx*c+dy*sn,y=-dx*sn+dy*c;
+  const overlapX=19-Math.abs(x),overlapY=16-Math.abs(y);
+  if(overlapX>0&&overlapY>0){if(overlapX<=overlapY)x=(x>=0?1:-1)*19;else y=(y>=0?1:-1)*16;
+   o.x=robot.x+x*c-y*sn;o.y=robot.y+x*sn+y*c;}
+  o.done=inDepot(o);
+ }
+}
+function advanceGrip(cmd,dt){
+  approachSpeed=Math.max(0,approachSpeed-braking*dt);
+  jaw=cmd.fromJaw+((cmd.t==='open'?1:0)-cmd.fromJaw)*Math.min(1,cmd.time/.4);if(cmd.time<.4)return;
+  if(cmd.t==='grap'&&held<0){
+   const f=front();let best=12;
+   packages.forEach((o,i)=>{const d=Math.hypot(o.x-f.x,o.y-f.y);if(d<=best){held=i;best=d;}});
+  }else if(cmd.t==='open')held=-1;
+  movePackages();complete();return;
+ }
+function advanceDrive(dt){elapsed+=dt;const cmd=active;cmd.time+=dt;if(cmd.kind==='grip'){advanceGrip(cmd,dt);return;}if(cmd.kind==='line'){const f=robot,target=cmd.target,remaining=Math.max(0,(target.x-f.x)*cmd.dx+(target.y-f.y)*cmd.dy);
+ const move=Math.min(remaining,speeds[cmd.level]*dt);robot.x+=move*cmd.dx;robot.y+=move*cmd.dy;
+ if(cmd.capture){
+   const c=cmd.capture;c.travel+=move;
+   const t=Math.min(1,c.travel/c.length),u=1-t;
+   // Join the stripe tangentially, preserving the entry heading and forward motion.
+   const lateral=u*u*((1+2*t)*c.offset+t*c.length*c.slope);
+   const slope=-6*t*u*c.offset/c.length+u*(1-3*t)*c.slope;
+   if(cmd.dx)robot.y=target.y+cmd.dx*lateral;else robot.x=target.x-cmd.dy*lateral;
+   robot.a=cmd.d*Math.PI/2+Math.atan(slope);
+   if(t===1)cmd.capture=null;
+ }
+ if(gathering())movePackages();
+ if(move>=remaining){
+   // Selected training junctions model a longer interval between sensor transitions.
+   // The synthetic acceptance window applies to this exercise, not to Jaguar firmware.
+   const gap=trainingGaps.get(target)||2;
+   if(cmd.ok&&gap/speeds[cmd.level]>.19){
+     el('observation').textContent=cmd.line+'행 · 센서 반응 → 저속 판정 누락. 같은 명령으로 다음 교차로를 탐색해요.';
+     const next=destination(target,cmd.d,cmd.side);cmd.target=next.n;cmd.ok=next.ok;return;
+   }
+   if(cmd.ok){approachSpeed=speeds[cmd.level];approachLine=cmd.line;complete();}else fail('선 끝까지 요청한 교차로를 찾지 못했어요.');}
+ }else if(cmd.kind==='turn'){
+   const t=Math.min(1,cmd.time/turnSeconds[cmd.level]);
+   const entry=Math.min(1,t/.65);
+   const correction=cmd.recover?Math.max(0,(t-.65)/.35):0;
+   const offset=cmd.distance*entry*(2-entry)*(cmd.recover?Math.max(0,1-t/.6):1);
+   const angle=cmd.sweep*entry+(Math.PI/2-cmd.sweep)*correction;
+   const swept=angle+Math.max(0,cmd.time/turnSeconds[cmd.level]-1)*Math.PI/2;
+   robot.a=cmd.from+cmd.delta*swept;
+   robot.x=cmd.pivot.x+offset*Math.cos(cmd.from);
+   robot.y=cmd.pivot.y+offset*Math.sin(cmd.from);
+   if(gathering())movePackages();
+   const onLine=probes()[3].on;
+   if(!onLine)cmd.clear=true;
+   if(cmd.recover&&cmd.clear&&onLine){
+     el('observation').textContent='회전 관찰 · '+Math.round(swept*180/Math.PI)+'°에서 전방 중앙 센서가 검은 선을 감지했어요.';
+     complete();
+   }else if(!cmd.recover&&t===1){
+     fail('진입 속도로 회전선을 지나쳤어요. '+approachLine+'행의 속도를 낮춰 보세요.');
+   }else if(!cmd.reported&&swept>=2*Math.PI){
+     cmd.reported=true;say('한 바퀴 동안 선을 찾지 못해 계속 회전 중이에요. 초기화하면 주행을 멈춰요.');
+   }
+ }else{if(cmd.kind==='delay')approachSpeed=Math.max(0,approachSpeed-braking*dt);
+ if(cmd.kind==='motor'){approachLine=cmd.line;approachSpeed=Math.abs(cmd.l+cmd.r)*2;const duration=Math.min(dt,Math.max(0,cmd.ms/1000-cmd.time+dt)),v=(cmd.l+cmd.r)*2,angle=(cmd.l-cmd.r)*4/28*duration;robot.x+=v*Math.cos(robot.a+angle/2)*duration;robot.y+=v*Math.sin(robot.a+angle/2)*duration;robot.a+=angle;if(gathering())movePackages();if(robot.x<0||robot.x>750||robot.y<0||robot.y>510){finished=true;halt('로봇이 맵을 벗어났어요. 모터 값이나 시간을 조정하세요.',true);return;}}if(cmd.time+1e-9>=cmd.ms/1000)complete();}}
+function tick(now){if(!running)return;carry+=Math.min(.1,(now-last)/1000);last=now;
+while(carry>=.005&&running){carry-=.005;advance(.005);mark();}
+let prev=trail.at(-1);if(Math.hypot(robot.x-prev.x,robot.y-prev.y)>1)trail.push({...robot});draw();if(running&&!lane)frame=requestAnimationFrame(tick);}
+function start(all){if(finished)reset();if(cargoMission()&&!cargo.length){say('화물을 한 개 이상 실어 주세요.',true);return;}try{commands=parse();}catch(e){if(e.row)select(e.row);say(e.message,true);return;}if(cargoMission()&&index===0){
+ if(teacher)trialSeed=20261119;else if(!trialSeed||!el('lockTrial').checked)trialSeed=1+Math.floor(Math.random()*2147483646);
+ loadCargo(true);el('trialLabel').textContent='조건 번호 '+trialSeed;
+ }running=true;continuous=all;controls();begin();last=performance.now();if(running&&!lane)frame=requestAnimationFrame(tick);}
+el('run').onclick=()=>start(true);el('step').onclick=()=>start(false);el('reset').onclick=reset;editor.oninput=reset;
+function mission(){
+ const id=el('mission').selectedIndex,presets=[normalNodes.get('130,393'),normalNodes.get('514,230'),normalNodes.get('660,24')];
+ if(gathering())selectGatherMap(id-9);else{nodes=normalNodes;origin=normalOrigin;}el('gripPanel').hidden=!gathering();paintTracks(gathering()?gatherLines:tracks);
+ if(id===3){const options=[...solutionsByGoal.keys()].filter(n=>n!==goal&&solutionsByGoal.get(n).length>=3);goal=options[Math.floor(Math.random()*options.length)];}else goal=gathering()?node(...gatherMap.end):(cargoMission()||racing())?node(660,24):presets[id];
+ el('new').hidden=id!==3;el('objective').textContent=['첫 분기에서 좌회전해 주황색 목표까지 가세요.','중앙 빈 구역의 오른쪽 위 모서리로 가세요.','오른쪽 위 끝의 가로선까지 가세요.','주황색 목표까지 가는 코드를 작성하세요.','A·B·C를 모두 통과하고 오른쪽 위 도착선에서 마치세요. 방문 순서는 자유입니다.'][id];
+ if(racing()){
+ course=courses[id-4];checkpoints=course.stops.map(([x,y])=>nodes.get(x+','+y));
+ scoreKey=id===4?'jaguar-three-stops-v1':'jaguar-three-stops-course-'+(id-3);
+ if(teacher)scoreKey='able-tournament-'+scoreKey;loadBoard();el('reference').textContent='기준 '+course.benchmark.toFixed(3)+'초';
+ el('sheetTitle').textContent=course.name+' · 세 지점 주행';
+ el('sheetBenchmark').textContent='기준 기록 '+course.benchmark.toFixed(3)+'초　　나의 최고 기록 __________초　　기준과의 차이 __________초';
+ el('objective').textContent='A·B·C를 원하는 순서로 통과해 도착하세요. 기준 기록보다 빠른 경로를 찾아보세요.';
+ }else ranking=[];
+ el('cargoPanel').hidden=!cargoMission();
+ if(cargoMission()){
+ checkpoints=courses[0].stops.map(([x,y])=>node(x,y));scoreKey=(teacher?'able-tournament-':'')+'jaguar-cargo-score-v1';loadBoard();
+ el('objective').textContent='A·B·C를 자유 순서로 통과해 도착하세요. 10점 시작 · 도착 공 +3점 / 병 +2점 · 낙하 1개당 −1점 · 동점은 도착 시간이 빠른 순';
+ el('reference').textContent='화물 운반';}
+ const assignment=gatherMap.depots.map((_,i)=>objects.flatMap((o,j)=>o[2]===i+1?[j+1]:[]).join('·')+'번 → 목적지 '+(i+1)).join(' / ');
+ const instructions=assignment+'. 물체를 grap으로 잡아 open으로 놓고 모두 배송한 뒤 END에서 정지하세요. motor 지름길도 사용할 수 있어요.';
+ el('sheetRules').textContent=gathering()?instructions:'왼쪽 아래에서 출발해 A·B·C를 원하는 순서로 통과한 뒤 오른쪽 위 도착선에서 코드를 마치세요. 주행과 회전, 지연 시간을 모두 합산합니다.';
+ el('sheetOrder').textContent=gathering()?'수거 순서　출발 → '+objects.map(()=> '____ 배송').join(' → ')+' → END':'방문 순서　출발 → ______ → ______ → ______ → 도착';
+ if(gathering()){scoreKey=gatherMap===sortingMap?'jaguar-gripper-map-v1-9':'jaguar-gripper-pair-v1-'+id;if(teacher)scoreKey='able-tournament-'+scoreKey;loadBoard();el('sheetTitle').textContent='집게 운반 · '+gatherMap.name;el('sheetBenchmark').textContent='라인 경로 __________초　 motor 지름길 __________초';
+ el('reference').textContent='집게 운반';el('objective').textContent=instructions;}
+ el('printSheet').hidden=cargoMission();el('racepanel').hidden=el('rankpanel').hidden=!racing()&&!cargoMission()&&!gathering();
+ el('answer').parentElement.hidden=racing()||gathering();leaderboard();
+ el('answer').textContent=gathering()?'':cargoMission()?'gl4 gl4 elt gl4 gl4 gr4 gl4 elt gl4 gl4 ert gr4 ert gl4 gl4 gl4 gl4 gl4 elt gr4'.split(' ').join('\n'):solutionsByGoal.get(goal).join('\n');el('answer').parentElement.open=false;
+ editor.value=(id===0||cargoMission())?el('answer').textContent:'';reset();
+}
+el('printSheet').onclick=()=>{
+ const snapshot=ctx.getImageData(0,0,canvas.width,canvas.height);
+ const saved={robot,trail,visited,elapsed};const restore=()=>{robot=saved.robot;trail=saved.trail;visited=saved.visited;elapsed=saved.elapsed;ctx.putImageData(snapshot,0,0);draw();};
+ robot=startPose();trail=[];visited=new Set();elapsed=0;printing=true;draw();printing=false;
+ robot=saved.robot;trail=saved.trail;visited=saved.visited;elapsed=saved.elapsed;
+ window.addEventListener('afterprint',restore,{once:true});window.print();
+};
+const missionKeys=['left','center','finish','random','race1','race2','race3','race4','cargo','grip1','grip2','grip3','grip4'];
+function submission(){
+ const id=el('mission').selectedIndex;
+ return {format:'able-mobility',version:1,team:el('team').value.trim(),mission:missionKeys[id],code:editor.value,
+ goal:id===3?[goal.x,goal.y]:null,
+ cargo:cargoMission()?Object.fromEntries(['ball','bottle'].map(type=>[type,[...placement[type]].map(([id,p])=>({id,x:p.x,y:p.y}))])):null};
+}
+function validateEntry(o){
+ if(o?.format!=='able-mobility'||o.version!==1||!missionKeys.includes(o.mission)||typeof o.team!=='string'||o.team.length>24||typeof o.code!=='string'||!o.code.trim()||o.code.length>100000)throw Error('제출 파일의 형식이나 코드가 올바르지 않아요.');
+ if(o.mission==='random'&&(!Array.isArray(o.goal)||!solutionsByGoal.has(normalNodes.get(o.goal.join(',')))))throw Error('목표 지점을 확인하세요.');
+ if(o.mission==='cargo'){
+ let positions=[];
+ for(const type of ['ball','bottle']){
+ const items=o.cargo?.[type];if(!Array.isArray(items)||items.length>25)throw Error('화물 수량 오류');
+ const ids=new Set();
+ for(const p of items){if(!p||!Number.isInteger(p.id)||p.id<0||p.id>24||ids.has(p.id)||!Number.isFinite(p.x)||!Number.isFinite(p.y)||Math.abs(p.x)>12||Math.abs(p.y)>8||positions.some(q=>Math.hypot(q.x-p.x,q.y-p.y)<1.6-1e-8))throw Error('화물 배치 오류');
+ ids.add(p.id);positions.push(p);}
+ }
+ if(!positions.length)throw Error('화물을 한 개 이상 배치하세요.');
+ }
+ return o;
+}
+el('saveProgram').onclick=()=>{
+ try{const data=validateEntry(submission());const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+ const a=document.createElement('a');a.href=url;a.download='Able_'+(data.team||'학생').replace(/[^가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9_-]/g,'_')+'_'+data.mission+'.json';
+ a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);say('프로그램 파일 다운로드를 시작했어요.');}catch(e){say(e.message,true);}
+};
+function openEntry(o){
+ selectedEntry=o;el('mission').selectedIndex=missionKeys.indexOf(o.mission);mission();
+ if(o.mission==='random')goal=normalNodes.get(o.goal.join(','));
+ if(o.mission==='cargo')for(const type of ['ball','bottle'])placement[type]=new Map(o.cargo[type].map(p=>[p.id,{x:p.x,y:p.y}]));
+ editor.value=o.code;el('team').value=o.team;reset();
+}
+el('mission').onchange=mission;el('new').onclick=mission;mission();
+return {canvas,validateEntry,openEntry,reset,start:()=>start(true),
+ label:o=>el('mission').options[missionKeys.indexOf(o.mission)].textContent,
+ advanceSteps(count){
+   for(let i=0;i<count&&running;i++){advance(.005);mark();}
+   const prev=trail.at(-1);
+   if(Math.hypot(robot.x-prev.x,robot.y-prev.y)>1)trail.push({...robot});
+   draw();
+ },
+ result(){
+   const message=el('status').textContent;
+   const valid=!running&&(ranking.length>0||message.startsWith('도착 성공'));
+   return {running,time:elapsed,valid,score:valid&&cargoMission()?cargoScore().score:null,message};
+ }};
+}
+const ui=id=>document.getElementById(id);
+const template=document.createDocumentFragment();
+for(const selector of ['main','#worksheet'])template.append(document.querySelector(selector).cloneNode(true));
+const student=simulator(document);
+let groups=new Map(), contestants=[], live=false, loading=false, animation=0, previous=0, carryTime=0;
+function meetControls(){
+ ui('compete').disabled=live||loading||!contestants.length;
+ ui('endHeat').disabled=!live;
+ ui('entries').disabled=live||loading||groups.size<2;
+ ui('submissions').disabled=live||loading;
+}
+function refreshStandings(){
+ const list=ui('standings');list.replaceChildren();
+ const winners=contestants.filter(c=>c.result?.valid).sort((a,b)=>
+   (b.result.score??0)-(a.result.score??0)||a.result.time-b.result.time);
+ let rank=0;
+ winners.forEach((c,i)=>{
+   const r=c.result,prev=winners[i-1]?.result;
+   if(!prev||prev.score!==r.score||Math.round(prev.time*1000)!==Math.round(r.time*1000))rank=i+1;
+   const item=document.createElement('li');item.value=rank;
+   item.textContent=c.file+' · '+(r.score===null?'':r.score+'점 · ')+r.time.toFixed(3)+'초';
+   list.append(item);
+ });
+ if(!winners.length)list.textContent='완주 기록 대기 중';
+}
+function prepareHeat(){
+ contestants=[];ui('lanes').replaceChildren();
+ for(const {file,data} of groups.get(ui('entries').value)||[]){
+   const engine=simulator(template.cloneNode(true),true);
+   engine.openEntry(data);
+   const card=document.createElement('section'),title=document.createElement('h3'),status=document.createElement('p');
+   card.className='lane';title.textContent=file;status.textContent='출발 대기';
+   engine.canvas.removeAttribute('id');engine.canvas.setAttribute('aria-label',file+' 주행 맵');
+   card.append(title,engine.canvas,status);ui('lanes').append(card);
+   contestants.push({file,data,engine,status,done:false,result:null});
+ }
+ ui('queueInfo').textContent=contestants.length?'출전 '+contestants.length+'팀 · 동시 출발 대기':'함께 출전할 JSON 파일을 한 번에 선택하세요.';
+ refreshStandings();meetControls();
+}
+ui('submissions').onchange=async()=>{
+ const files=Array.from(ui('submissions').files);if(!files.length)return;
+ loading=true;meetControls();const grouped=new Map(),errors=[];
+ for(const f of files){
+   try{
+     if(f.size>600000)throw Error('파일 크기 초과');
+     const data=student.validateEntry(JSON.parse(await f.text()));
+     const key=data.mission+(data.mission==='random'?' '+data.goal.join(','):'');
+     if(!grouped.has(key))grouped.set(key,[]);
+     grouped.get(key).push({file:f.name,data});
+   }catch(e){errors.push(f.name+' · '+e.message);}
+ }
+ groups=grouped;const menu=ui('entries');menu.replaceChildren();
+ for(const [key,group] of groups){
+   const o=document.createElement('option'),data=group[0].data;o.value=key;
+   o.textContent=student.label(data)+(data.mission==='random'?' ('+data.goal.join(', ')+')':'')+' · '+group.length+'팀';menu.append(o);
+ }
+ ui('submissions').value='';ui('loadErrors').textContent=errors.join('\n');loading=false;prepareHeat();
+};
+ui('entries').onchange=prepareHeat;
+function endHeat(){
+ cancelAnimationFrame(animation);live=false;
+ for(const c of contestants)if(!c.done){c.done=true;c.status.textContent='중단 · '+c.engine.result().time.toFixed(3)+'초';}
+ ui('queueInfo').textContent='경기 종료 · '+contestants.filter(c=>c.result?.valid).length+'팀 완주 / '+contestants.length+'팀 출전';
+ meetControls();refreshStandings();
+}
+function renderHeat(now){
+ carryTime+=Math.min(.1,(now-previous)/1000);previous=now;
+ const steps=Math.floor(carryTime/.005);carryTime-=steps*.005;
+ let changed=false;
+ for(const c of contestants){
+   if(c.done)continue;
+   c.engine.advanceSteps(steps);
+   const r=c.engine.result();
+   if(r.running)c.status.textContent='주행 중 · '+r.time.toFixed(3)+'초';
+   else{
+     c.done=true;c.result=r;changed=true;
+     c.status.textContent=r.valid?'완주 · '+(r.score===null?'':r.score+'점 · ')+r.time.toFixed(3)+'초':'미완주 · '+r.message;
+   }
+ }
+ if(changed)refreshStandings();
+ if(contestants.every(c=>c.done))endHeat();else animation=requestAnimationFrame(renderHeat);
+}
+ui('compete').onclick=()=>{
+ if(live||!contestants.length)return;
+ for(const c of contestants){c.done=false;c.result=null;c.engine.openEntry(c.data);c.engine.start();}
+ live=true;previous=performance.now();carryTime=0;meetControls();refreshStandings();
+ ui('queueInfo').textContent=contestants.length+'팀 동시 주행 중';animation=requestAnimationFrame(renderHeat);
+};
+ui('endHeat').onclick=endHeat;
+ui('mode').onchange=()=>{
+ const teacher=ui('mode').value==='teacher';
+ if(live)endHeat();
+ if(teacher)student.reset();
+ document.body.classList.toggle('tournament',teacher);ui('judging').hidden=!teacher;
+};
+
+</script></html>
